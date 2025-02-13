@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AES Image Decryptor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            text-align: center;
+            font-family: 'Poppins', Arial, sans-serif;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            position: relative;
+        }
+
+        #status {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            animation: blink 1.5s infinite alternate;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        h2 {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        #dogGuardImage {
+            width: 60%;
+            margin-bottom: 15px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        input {
+            width: 90%;
+            padding: 12px;
+            font-size: 16px;
+            margin-top: 10px;
+            background-color: #222;
+            color: white;
+            border: 2px solid white;
+            caret-color: white;
+            border-radius: 5px;
+            outline: none;
+            text-align: center;
+            font-family: 'Poppins', Arial, sans-serif;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            background: #ffcc00;
+            color: black;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Poppins', Arial, sans-serif;
+        }
+
+        button:hover, button:active {
+            background: #ffcc00;
+            transform: none;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #decryptStatus {
+            margin-top: 15px;
+            font-size: 16px;
+            color: white;
+            font-weight: bold;
+            font-family: 'Poppins', Arial, sans-serif;
+        }
+
+        #dogImage {
+            width: 70%;
+            cursor: pointer;
+            transition: transform 0.3s ease-in-out;
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        #dogImage:hover {
+            transform: translateX(-50%) scale(1.1);
+        }
+
+        #outputImage {
+            width: 85%;
+            display: none;
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <p id="status">Wait a second...<br>Fetching the files</p>
+
+    <div class="input-container hidden">
+        <h2>DOGS ARE GOOD</h2>
+        <img id="dogGuardImage" src="https://raw.githubusercontent.com/dog-cat-crow/moron/main/dogguard.jpg" alt="Dog Guard">
+        <input type="text" id="password" placeholder="PASTE KEY HERE"><br><br>  
+        <button id="decryptButton" onclick="startDecryption()" onmousedown="event.preventDefault()">ENTER</button>
+        <p id="decryptStatus"></p>
+    </div>
+
+    <div class="decrypt-container hidden">
+        <h2 id="revealText">Click the dog<br>He's cute like you</h2>
+        <div id="dogImageContainer">
+            <img id="dogImage" src="https://raw.githubusercontent.com/dog-cat-crow/moron/main/dog.png" onclick="revealImage()">
+        </div>
+        <img id="outputImage" class="hidden">
+    </div>
+
+    <script>
+        function fetchFile() {
+            fetch("https://raw.githubusercontent.com/dog-cat-crow/moron/main/image.txt")
+                .then(response => response.text())
+                .then(encryptedText => {
+                    window.encryptedImage = encryptedText;
+                    document.getElementById("status").classList.add("hidden"); 
+                    document.querySelector(".input-container").classList.remove("hidden");
+                })
+                .catch(() => {
+                    document.getElementById("status").innerText = "Unable to fetch";
+                });
+        }
+
+        function startDecryption() {
+            document.getElementById("password").blur();
+            let decryptStatus = document.getElementById("decryptStatus");
+            decryptStatus.innerText = "Decrypting...";
+            setTimeout(decryptImage, 1000);
+        }
+
+        function decryptImage() {
+            let password = document.getElementById("password").value;
+            let decryptStatus = document.getElementById("decryptStatus");
+
+            try {
+                let decryptedBytes = CryptoJS.AES.decrypt(window.encryptedImage, password);
+                let decryptedBase64 = decryptedBytes.toString(CryptoJS.enc.Utf8);
+
+                if (!decryptedBase64) throw new Error();
+
+                decryptStatus.innerText = "Decrypted Successfully!";
+
+                setTimeout(() => {
+                    document.querySelector(".input-container").classList.add("hidden");
+                    document.querySelector(".decrypt-container").classList.remove("hidden");
+
+                    window.decryptedImageSrc = "data:image/png;base64," + decryptedBase64;
+                    decryptStatus.innerText = "";
+                }, 2000);
+            } catch {
+                decryptStatus.innerText = "Invalid Key Entered!";
+            }
+        }
+
+        function revealImage() {
+            if (localStorage.getItem("X")) {
+                document.getElementById("revealText").innerText = "Uh oh!\nYou've already seen the image once.";
+                return;
+            }
+
+            document.getElementById("revealText").classList.add("hidden");
+            document.getElementById("dogImage").style.display = "none";
+            let img = document.getElementById("outputImage");
+            img.src = window.decryptedImageSrc;
+            img.style.display = "block";
+
+            // Store in local storage to prevent re-revealing
+            localStorage.setItem("X", "true");
+
+            // Set timeout to delete image after 30 seconds
+            setTimeout(() => {
+                img.style.display = "none";
+                document.getElementById("revealText").classList.remove("hidden");
+                document.getElementById("revealText").innerText = "Time Up!";
+                window.decryptedImageSrc = ""; // Clear from memory
+            }, 30000);
+        }
+
+        fetchFile();
+    </script>
+</body>
+</html>
